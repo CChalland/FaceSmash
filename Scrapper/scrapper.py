@@ -34,8 +34,8 @@ class Scrapper:
             '_ym_uid': '1651760400946315569', 
             '_ym_d': '1651760400'
         }
-        self.ads_listings_url ="https://megapersonals.eu/public/post_list/113/1/1"
-        self.ads_list = self._get_ads_page(self.ads_listings_url)
+        self.page_url ="https://megapersonals.eu/public/post_list/113/1/"
+        self.ads_list = self._get_ads()
     
     def _make_request(self, url):
         try:
@@ -52,7 +52,6 @@ class Scrapper:
         except Exception as e:
             logger.error("Connection error while making %s request to %s: %s", url, e)
             return None
-        
         if response.status_code == 200:  # 200 is the response code of successful requests
             return response
         else:
@@ -60,7 +59,7 @@ class Scrapper:
             return None
     
     def _get_ads_page(self, url):
-        ads_list = []
+        ads_page = []
         page = self._make_request(url)
         soup = BeautifulSoup(page.content, "html.parser")
         ads_elements = soup.find_all("div", class_="listadd")
@@ -105,7 +104,12 @@ class Scrapper:
                 videos.append(video_hash)
             result['videos'] = videos
             
-            ads_list.append(result)
+            ads_page.append(result)
+        return ads_page
+    
+    def _get_ads(self):
+        ads_list = []
+        for page_idx in range(1,9):
+            ads_list.append(self._get_ads_page(self.page_url + str(page_idx)))
+        
         return ads_list
-    
-    
