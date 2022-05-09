@@ -4,5 +4,5 @@ beautifulsoup4
 pandas
 requests
 selenium
-tensorflow==1.14.0
-keras==2.2.4
+tensorflow==1.15.0
+nudenet
