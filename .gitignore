@@ -3,8 +3,10 @@
 *__pycache__*
 
 .env
+info.rtf
 /Production
 /samples
 /Scrapper/*__pycache__*
-
-info.rtf
+/Scrapper/images
+/Scrapper/info.rtf
+/Scrapper/info.log

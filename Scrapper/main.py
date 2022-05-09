@@ -1,6 +1,8 @@
 import logging
+from nudenet import NudeDetector
+from nudenet import NudeClassifier
 
-from scrapper import Scrapper
+# from scrapper import Scrapper
 
 # Create and configure the logger object
 logger = logging.getLogger()
@@ -20,5 +22,12 @@ logger.addHandler(file_handler)
 
 
 if __name__ == '__main__':  # Execute the following code only when executing main.py (not when importing it)
-    scrapper = Scrapper()
-    print(scrapper.ads_list)
+    # scrapper = Scrapper()
+    # print(scrapper.ads_list)
+    
+    # classifier = NudeClassifier()
+    # print(classifier.classify('./test1.jpg'))
+    
+    detector = NudeDetector()
+    print(detector.detect('./test1.jpg'))
+    detector.censor('./test1.jpg', out_path='./test1_censor.jpg', visualize=False)
