@@ -119,7 +119,7 @@ class Scrapper:
         return ads_list
     
     
-    def _save_images_from_url(self, type, url, file_path, file_name):
+    def _save_from_url(self, type, url, file_path, file_name):
         if type == "IMAGE":
             full_path = file_path + file_name + '.jpg'
             urllib.request.urlretrieve(url, full_path)
