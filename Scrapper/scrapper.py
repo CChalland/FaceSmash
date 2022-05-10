@@ -5,6 +5,7 @@ import chromedriver_binary
 from bs4 import BeautifulSoup
 import logging
 import datetime
+import urllib.request
 
 # URL = "https://megapersonals.eu/public/post_list/113/1/1"
 
@@ -37,6 +38,7 @@ class Scrapper:
         self.page_url ="https://megapersonals.eu/public/post_list/113/1/"
         self.ads_list = self._get_ads()
     
+    
     def _make_request(self, url):
         try:
             response = requests.get(
@@ -57,6 +59,7 @@ class Scrapper:
         else:
             logger.error("Error while making %s request to %s: %s (error code %s)", url, response.json(), response.status_code)
             return None
+    
     
     def _get_ads_page(self, url):
         ads_page = []
@@ -107,9 +110,19 @@ class Scrapper:
             ads_page.append(result)
         return ads_page
     
+    
     def _get_ads(self):
         ads_list = []
         for page_idx in range(1,9):
             ads_list.append(self._get_ads_page(self.page_url + str(page_idx)))
-        
+
         return ads_list
+    
+    
+    def _save_images_from_url(self, type, url, file_path, file_name):
+        if type == "IMAGE":
+            full_path = file_path + file_name + '.jpg'
+            urllib.request.urlretrieve(url, full_path)
+        elif type == "VIDEO":
+            full_path = file_path + file_name + '.mp4'
+            urllib.request.urlretrieve(url, full_path)

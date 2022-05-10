@@ -7,5 +7,5 @@ doc.rtfd
 /Production
 /samples
 /Scrapper/*__pycache__*
-/Scrapper/images
+/Scrapper/media
 /Scrapper/info.log
