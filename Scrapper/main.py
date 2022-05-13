@@ -1,4 +1,5 @@
 import logging
+import os
 from nudenet import NudeDetector
 from nudenet import NudeClassifier
 from scrapper import Scrapper
@@ -24,9 +25,11 @@ if __name__ == '__main__':  # Execute the following code only when executing mai
     scrapper = Scrapper()
     print(scrapper.ads_list)
     
-    # classifier = NudeClassifier()
-    # print(classifier.classify('./test1.jpg'))
-    
-    # detector = NudeDetector()
-    # print(detector.detect('./test1.jpg'))
-    # detector.censor('./test1.jpg', out_path='./test1_censor.jpg', visualize=False)
+    # detector = NudeDetector('base')     # for the "base" version of detector.
+
+    # for x in os.listdir("/Users/colechalland/Projects/APPs/EscortSmash/Scrapper/media"):
+    #     if x.endswith(".jpg"):
+    #         filepath = './media/' + x
+    #         filename = './media/censored_' + x
+    #         print(detector.detect(filepath, mode='fast'))
+    #         detector.censor(filepath, out_path=filename, visualize=False)

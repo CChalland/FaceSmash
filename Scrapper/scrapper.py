@@ -1,11 +1,12 @@
-import requests, pickle
+from urllib import response
+import requests
 from time import sleep
 from selenium import webdriver
 import chromedriver_binary
 from bs4 import BeautifulSoup
 import logging
-import datetime
 import urllib.request
+
 
 # URL = "https://megapersonals.eu/public/post_list/113/1/1"
 
@@ -23,7 +24,15 @@ logger = logging.getLogger()  # This will be the same logger object as the one c
 
 class Scrapper:
     def __init__(self):
-        self.cookies_dict = {
+        self._headers = {
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
+            'accept-encoding': 'gzip, deflate, br',
+            'accept-language': 'en-US,en;q=0.9',
+            'upgrade-insecure-requests': '1',
+            'scheme': 'https'
+        }
+        self._cookies_dict = {
             'backURL': 'https%3A%2F%2Fmegapersonals.eu%2Fpublic%2Fpost_list%2F113%2F1%2F1',
             '_gat_gtag_UA_113349993_1': '1',
             '_gid': 'GA1.2.1148061863.1651760402',
@@ -41,16 +50,7 @@ class Scrapper:
     
     def _make_request(self, url):
         try:
-            response = requests.get(
-            url,
-            cookies=self.cookies_dict,
-            headers={'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
-                    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
-                    'accept-encoding': 'gzip, deflate, br',
-                    'accept-language': 'en-US,en;q=0.9',
-                    'upgrade-insecure-requests': '1',
-                    'scheme': 'https'}
-            )
+            response = requests.get(url, cookies=self._cookies_dict, headers=self._headers)
         except Exception as e:
             logger.error("Connection error while making %s request to %s: %s", url, e)
             return None
@@ -68,47 +68,53 @@ class Scrapper:
         ads_elements = soup.find_all("div", class_="listadd")
         
         for ad in ads_elements:
-            images = []
-            videos = []
-            result = dict()
-            
             linkElement = ad.find("div", class_="listinfo").find("a", class_="listtitle")
-            result['title'] = linkElement.text.strip()
+            ad_page = self._get_ad("https://megapersonals.eu" + linkElement['href'],
+                                    linkElement.text.strip())
+            ads_page.append(ad_page)
             
-            result['link'] = "https://megapersonals.eu" + linkElement['href']
-            ad_page = self._make_request(result['link'])
-            ad_soup = BeautifulSoup(ad_page.content, "html.parser")
-            
-            phoneElement = ad_soup.find("span", class_="toShowPhone")
-            result['phone'] = phoneElement.find("a").text.strip()        
-            if ad_soup.find("span", class_="fromRight"):
-                result['name'] = ad_soup.find("span", class_="fromRight").text.strip()[6:]
-            else:
-                result['name'] = None
-            result['date'] = ad_soup.find("div", class_="post_preview_date_time").text.strip()
-            result['age'] = ad_soup.find("div", class_="post_preview_age").text.strip()
-            result['body'] = ad_soup.find("span", class_="postbody").text.strip()
-            if ad_soup.find("p", class_="prev_location"):
-                result['location'] = ad_soup.find("p", class_="prev_location").find("span").text.strip()[9:]
-            else:
-                result['location'] = ad_soup.find("p", class_="prev_city").find("span").text.strip()[5:]
-            
-            imageElements = ad_soup.find_all("img", class_="post_preview_image")
-            videoElements = ad_soup.find_all("video")
-            
-            for image in imageElements:
-                images.append(image['src'])
-            result['images'] = images
-            
-            for video in videoElements:
-                video_hash = dict()
-                video_hash['thumbnail'] = video['poster']
-                video_hash['src'] = video.find("source")['src']
-                videos.append(video_hash)
-            result['videos'] = videos
-            
-            ads_page.append(result)
         return ads_page
+    
+    
+    def _get_ad(self, url, title):
+        images = []
+        videos = []
+        result = dict()
+        
+        ad_page = self._make_request(url)
+        ad_soup = BeautifulSoup(ad_page.content, "html.parser")
+        
+        result['url'] = url
+        result['title'] = title
+        phoneElement = ad_soup.find("span", class_="toShowPhone")
+        result['phone'] = phoneElement.find("a").text.strip()        
+        if ad_soup.find("span", class_="fromRight"):
+            result['name'] = ad_soup.find("span", class_="fromRight").text.strip()[6:]
+        else:
+            result['name'] = None
+        result['date'] = ad_soup.find("div", class_="post_preview_date_time").text.strip()
+        result['age'] = ad_soup.find("div", class_="post_preview_age").text.strip()
+        result['body'] = ad_soup.find("span", class_="postbody").text.strip()
+        if ad_soup.find("p", class_="prev_location"):
+            result['location'] = ad_soup.find("p", class_="prev_location").find("span").text.strip()[9:]
+        else:
+            result['location'] = ad_soup.find("p", class_="prev_city").find("span").text.strip()[5:]
+        
+        imageElements = ad_soup.find_all("img", class_="post_preview_image")
+        videoElements = ad_soup.find_all("video")
+        
+        for image in imageElements:
+            images.append(image['src'])
+        result['images'] = images
+        
+        for video in videoElements:
+            video_hash = dict()
+            video_hash['thumbnail'] = video['poster']
+            video_hash['src'] = video.find("source")['src']
+            videos.append(video_hash)
+        result['videos'] = videos
+        
+        return result
     
     
     def _get_ads(self):
