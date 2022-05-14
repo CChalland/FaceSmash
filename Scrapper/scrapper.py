@@ -6,6 +6,10 @@ import chromedriver_binary
 from bs4 import BeautifulSoup
 import logging
 import urllib.request
+import os
+import asyncio
+import aiohttp
+import html5lib
 
 
 # URL = "https://megapersonals.eu/public/post_list/113/1/1"
@@ -49,6 +53,9 @@ class Scrapper:
     
     
     def _make_request(self, url):
+        """
+        With requests time: 3:03.04 minutes
+        """
         try:
             response = requests.get(url, cookies=self._cookies_dict, headers=self._headers)
         except Exception as e:
@@ -61,18 +68,38 @@ class Scrapper:
             return None
     
     
+    async def _get_site_content(self, url):
+        """
+        With aiohttp time: 3:03.94 minutes
+        """
+        try:
+            async with aiohttp.ClientSession(headers=self._headers,cookies=self._cookies_dict) as session:
+                async with session.get(url) as res:
+                    text = await res.read()
+        except Exception as e:
+            logger.error("Connection error while making %s request to %s: %s", url, e)
+            return None
+        if text:
+            return BeautifulSoup(text.decode('utf-8'), 'html5lib')
+        else:
+            logger.error("Error while making %s request to %s: %s (error code %s)", url)
+            return None
+    
+    
     def _get_ads_page(self, url):
         ads_page = []
+        
+        # loop = asyncio.get_event_loop()
+        # soup = loop.run_until_complete(self._get_site_content(url))
         page = self._make_request(url)
         soup = BeautifulSoup(page.content, "html.parser")
-        ads_elements = soup.find_all("div", class_="listadd")
         
+        ads_elements = soup.find_all("div", class_="listadd")
         for ad in ads_elements:
             linkElement = ad.find("div", class_="listinfo").find("a", class_="listtitle")
             ad_page = self._get_ad("https://megapersonals.eu" + linkElement['href'],
                                     linkElement.text.strip())
             ads_page.append(ad_page)
-            
         return ads_page
     
     
@@ -81,6 +108,8 @@ class Scrapper:
         videos = []
         result = dict()
         
+        # loop = asyncio.get_event_loop()
+        # ad_soup = loop.run_until_complete(self._get_site_content(url))
         ad_page = self._make_request(url)
         ad_soup = BeautifulSoup(ad_page.content, "html.parser")
         
@@ -114,6 +143,7 @@ class Scrapper:
             videos.append(video_hash)
         result['videos'] = videos
         
+        print(result)
         return result
     
     
