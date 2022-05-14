@@ -1,11 +1,11 @@
 from urllib import response
 import requests
+import shutil
 from time import sleep
 from selenium import webdriver
 import chromedriver_binary
 from bs4 import BeautifulSoup
 import logging
-import urllib.request
 import os
 import asyncio
 import aiohttp
@@ -59,7 +59,7 @@ class Scrapper:
         try:
             response = requests.get(url, cookies=self._cookies_dict, headers=self._headers)
         except Exception as e:
-            logger.error("Connection error while making %s request to %s: %s", url, e)
+            logger.error("Connection error while making GET request to %s: %s", url, e)
             return None
         if response.status_code == 200:  # 200 is the response code of successful requests
             return response
@@ -77,7 +77,7 @@ class Scrapper:
                 async with session.get(url) as res:
                     text = await res.read()
         except Exception as e:
-            logger.error("Connection error while making %s request to %s: %s", url, e)
+            logger.error("Connection error while making GET request to %s: %s", url, e)
             return None
         if text:
             return BeautifulSoup(text.decode('utf-8'), 'html5lib')
@@ -108,15 +108,13 @@ class Scrapper:
         videos = []
         result = dict()
         
-        # loop = asyncio.get_event_loop()
-        # ad_soup = loop.run_until_complete(self._get_site_content(url))
         ad_page = self._make_request(url)
         ad_soup = BeautifulSoup(ad_page.content, "html.parser")
         
         result['url'] = url
         result['title'] = title
         phoneElement = ad_soup.find("span", class_="toShowPhone")
-        result['phone'] = phoneElement.find("a").text.strip()        
+        result['phone'] = phoneElement.find("a").text.strip().split()[-1]   
         if ad_soup.find("span", class_="fromRight"):
             result['name'] = ad_soup.find("span", class_="fromRight").text.strip()[6:]
         else:
@@ -132,15 +130,33 @@ class Scrapper:
         imageElements = ad_soup.find_all("img", class_="post_preview_image")
         videoElements = ad_soup.find_all("video")
         
+        if not os.path.exists('./media/' + result['phone']):
+            os.makedirs('./media/' + result['phone'])
+        if imageElements and not os.path.exists('./media/' + result['phone'] + '/images'):
+            os.makedirs('./media/' + result['phone'] + '/images')
+        if videoElements and not os.path.exists('./media/' + result['phone'] + '/videos'):
+            os.makedirs('./media/' + result['phone'] + '/videos')
+        
         for image in imageElements:
-            images.append(image['src'])
-        result['images'] = images
+            image_data = dict()
+            image_data['filename'] = image['src'].split('/')[-1]
+            image_data['src'] = image['src']
+            image_data['location'] = self._save_from_url(type="IMAGE", url=image_data['src'],
+                                                        file_path=result['phone']+'/',
+                                                        file_name=image_data['filename'])
+            images.append(image_data)
         
         for video in videoElements:
-            video_hash = dict()
-            video_hash['thumbnail'] = video['poster']
-            video_hash['src'] = video.find("source")['src']
-            videos.append(video_hash)
+            video_data = dict()
+            video_data['thumbnail'] = video['poster']
+            video_data['src'] = video.find("source")['src']
+            video_data['filename'] = video_data['src'].split('/')[-1]
+            video_data['location'] = self._save_from_url(type="VIDEO", url=video_data['src'],
+                                                        file_path=result['phone'],
+                                                        file_name=video_data['filename'])
+            videos.append(video_data)
+        
+        result['images'] = images
         result['videos'] = videos
         
         print(result)
@@ -151,14 +167,27 @@ class Scrapper:
         ads_list = []
         for page_idx in range(1,9):
             ads_list.append(self._get_ads_page(self.page_url + str(page_idx)))
-
         return ads_list
     
     
     def _save_from_url(self, type, url, file_path, file_name):
         if type == "IMAGE":
-            full_path = file_path + file_name + '.jpg'
-            urllib.request.urlretrieve(url, full_path)
+            full_path = 'media/' + file_path + '/images/' + file_name
         elif type == "VIDEO":
-            full_path = file_path + file_name + '.mp4'
-            urllib.request.urlretrieve(url, full_path)
+            full_path = 'media/' + file_path + '/videos/' + file_name
+        try:
+            # Open the url image, set stream to True, this will return the stream content.
+            res = requests.get(url, stream=True, cookies=self._cookies_dict, headers=self._headers)
+        except Exception as e:
+            logger.error("Connection error while making GET request to %s: %s", url, e)
+        # Check if the image was retrieved successfully
+        if res.status_code == 200:
+            # Set decode_content value to True, otherwise the downloaded image file's size will be zero.
+            res.raw.decode_content = True
+            # Open a local file with wb ( write binary ) permission.
+            with open(full_path, 'wb') as f:
+                shutil.copyfileobj(res.raw, f)
+        else:
+            logger.error("Could not save %s -- %s file to %s", url,type,full_path)
+        
+        return full_path
