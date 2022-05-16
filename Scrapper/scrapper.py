@@ -5,6 +5,8 @@ from time import sleep
 from selenium import webdriver
 import chromedriver_binary
 from bs4 import BeautifulSoup
+from nudenet import NudeDetector
+from nudenet import NudeClassifier
 import logging
 import os
 import asyncio
@@ -134,6 +136,8 @@ class Scrapper:
             os.makedirs('./media/' + result['phone'])
         if imageElements and not os.path.exists('./media/' + result['phone'] + '/images'):
             os.makedirs('./media/' + result['phone'] + '/images')
+        if imageElements and not os.path.exists('./media/' + result['phone'] + '/censored'):
+            os.makedirs('./media/' + result['phone'] + '/censored')
         if videoElements and not os.path.exists('./media/' + result['phone'] + '/videos'):
             os.makedirs('./media/' + result['phone'] + '/videos')
         
@@ -142,8 +146,9 @@ class Scrapper:
             image_data['filename'] = image['src'].split('/')[-1]
             image_data['src'] = image['src']
             image_data['location'] = self._save_from_url(type="IMAGE", url=image_data['src'],
-                                                        file_path=result['phone']+'/',
+                                                        file_path=result['phone'],
                                                         file_name=image_data['filename'])
+            image_data['censored'] = self._censored_image(file_location=image_data['location'],file_path=result['phone'])
             images.append(image_data)
         
         for video in videoElements:
@@ -191,3 +196,13 @@ class Scrapper:
             logger.error("Could not save %s -- %s file to %s", url,type,full_path)
         
         return full_path
+    
+    
+    def _censored_image(self, file_location, file_path):
+        file_name = './media/' + file_path + '/censored/' + file_location.split('/')[-1]
+        detector = NudeDetector('base')     # for the "base" version of detector.
+        
+        detector.censor('./' + file_location, out_path=file_name, visualize=False)
+
+        return file_name
+    
