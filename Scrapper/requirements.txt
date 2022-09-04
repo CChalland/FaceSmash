@@ -6,3 +6,5 @@ requests
 selenium
 tensorflow==1.15.0
 nudenet
+html5lib
+aiohttp

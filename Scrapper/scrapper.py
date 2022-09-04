@@ -13,6 +13,8 @@ import asyncio
 import aiohttp
 import html5lib
 
+from censor import Censor
+
 
 # URL = "https://megapersonals.eu/public/post_list/113/1/1"
 
@@ -30,6 +32,7 @@ logger = logging.getLogger()  # This will be the same logger object as the one c
 
 class Scrapper:
     def __init__(self):
+        self.Censor = Censor()
         self._headers = {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36',
             'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
@@ -148,7 +151,7 @@ class Scrapper:
             image_data['location'] = self._save_from_url(type="IMAGE", url=image_data['src'],
                                                         file_path=result['phone'],
                                                         file_name=image_data['filename'])
-            image_data['censored'] = self._censored_image(file_location=image_data['location'],file_path=result['phone'])
+            image_data['censored'] = self.Censor.censored_image(file_location=image_data['location'],file_path=result['phone'])
             images.append(image_data)
         
         for video in videoElements:
@@ -164,13 +167,13 @@ class Scrapper:
         result['images'] = images
         result['videos'] = videos
         
-        print(result)
+        # print(result)
         return result
     
     
     def _get_ads(self):
         ads_list = []
-        for page_idx in range(1,9):
+        for page_idx in range(1,2):
             ads_list.append(self._get_ads_page(self.page_url + str(page_idx)))
         return ads_list
     
@@ -197,12 +200,4 @@ class Scrapper:
         
         return full_path
     
-    
-    def _censored_image(self, file_location, file_path):
-        file_name = './media/' + file_path + '/censored/' + file_location.split('/')[-1]
-        detector = NudeDetector('base')     # for the "base" version of detector.
-        
-        detector.censor('./' + file_location, out_path=file_name, visualize=False)
-
-        return file_name
     
