@@ -7,7 +7,7 @@ logger = logging.getLogger()  # This will be the same logger object as the one c
 class Censor:
     def __init__(self):
         self.pwd = 'media/'
-        self.detector = NudeDetector('base')     # for the "base" version of detector.
+        self.detector = NudeDetector()     # for the "base" version of detector.
     
     
     def censored_image(self, file_location, file_path):
